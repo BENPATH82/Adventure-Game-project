@@ -1,4 +1,4 @@
-import Gamefunctions as gamefunctions
+import gamefunctions
 
 def main():
     player_name = input("Welcome to the game! What's your name? ")
