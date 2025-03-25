@@ -1,136 +1,160 @@
-"""Game Functions Module.
-
-This module contains various functions for a game, such as purchasing items,
-generating random monsters, printing welcome messages, and displaying shop 
-menus. It is designed to be imported and used in other Python files.
-
-Functions:
-    - purchase_item: Calculates the number of items that can be purchased.
-    - new_random_monster: Generates random monster properties.
-    - print_welcome: Prints a welcome message for a player.
-    - print_shop_menu: Displays shop menu with item prices.
-
-Typical usage example:
-    import gamefunctions
-    gamefunctions.print_welcome("Player")
-"""
-
 import random
 
-def purchase_item(itemPrice: float, startingMoney: float, quantityToPurchase: int = 1) -> tuple:
+def print_welcome(player_name):
+    """Displays the welcome message and the player's name.
+
+    Args:
+        player_name (str): The name of the player.
     """
-    This function calculates the number of items that can be purchased with the given amount of money.
-    
-    Parameters:
-    itemPrice (float): The price of a single item.
-    startingMoney (float): The initial amount of money.
-    quantityToPurchase (int, optional): The number of items to purchase. Defaults to 1.
-    
+
+    print(f"Welcome, {player_name}!")
+
+def new_random_monster():
+     """Generates and returns a random monster with attributes.
+
     Returns:
-    tuple: A tuple containing the number of items purchased and the remaining amount of money.
-    Example:
-        >>> purchase_item(10.0, 50.0, 2)
-        (2, 30.0)
+        dict: A dictionary representing a monster, containing its name, hp, attack power, and description.
     """
-    max_items = int(startingMoney / itemPrice)
-    if max_items >= quantityToPurchase:
-        return quantityToPurchase, round(startingMoney - quantityToPurchase * itemPrice, 2)
-    else:
-        return max_items, round(startingMoney - max_items * itemPrice, 2)
 
-def new_random_monster() -> dict:
+    monsters = [
+        {"name": "Goblin", "hp": 20, "attack": 5, "description": "A small, green goblin with sharp teeth."},
+        {"name": "Orc", "hp": 30, "attack": 8, "description": "A large, muscular orc wielding a crude axe."},
+        {"name": "Spider", "hp": 15, "attack": 7, "description": "A giant spider with venomous fangs."},
+    ]
+    return random.choice(monsters)
+
+def print_shop_menu(item1_name, item1_price, item2_name, item2_price):
+    """ Prints a menu of items available in the shop along with their prices
+    Args:
+        item1_name (str): Name of the first item.
+        item1_price (int): Price of the first item.
+        item2_name (str): Name of the second item.
+        item2_price (int): Price of the second item.
     """
-    This function generates a random monster with various properties.
-    
+
+
+    print(f"1) {item1_name}: ${item1_price}")
+    print(f"2) {item2_name}: ${item2_price}")
+
+def purchase_item(item_price, money, quantity):
+    """ Hnadles the purchase of items and calculates the remaining money.
+    Args:
+        item_price (int): Price of a single item.
+        money (int): The amount of money the player has.
+        quantity (int): The number of items the player wants to buy.
+
     Returns:
-    dict: A dictionary containing the monster's name, description, health, power, and money.
+        tuple: The number of items purchased and the remaining money.
     """
-    names = ["Goblin", "Orc", "Troll"]
-    name = random.choice(names)
-    if name == "Goblin":
-        health = round(random.uniform(10, 20), 2)
-        power = round(random.uniform(5, 10), 2)
-        money = round(random.uniform(10, 20), 2)
-    elif name == "Orc":
-        health = round(random.uniform(20, 30), 2)
-        power = round(random.uniform(10, 15), 2)
-        money = round(random.uniform(20, 30), 2)
+
+
+    total_cost = item_price * quantity
+    if money >= total_cost:
+        remaining_money = money - total_cost
+        return quantity, remaining_money
     else:
-        health = round(random.uniform(30, 40), 2)
-        power = round(random.uniform(15, 20), 2)
-        money = round(random.uniform(30, 40), 2)
-    return {
-        "name": name,
-        "description": f"A {name} with {health} health and {power} power.",
-        "health": health,
-        "power": power,
-        "money": money
-    }
+        print("Not enough money!")
+        return 0, money
 
-def print_welcome(name: str, width: int = 20) -> None:
+def display_fight_statistics(player_hp, monster_hp, monster_name):
+    """ Displaysn the current health points(HP) of the player and the monster.
+Args:
+    player_hp(int):The health points of the player
+    monster_hp(int):The health points of the monster.
+    monster_name(str): the name of the monster.
+"""
+    print(f"\nYour HP: {player_hp}, {monster_name} HP: {monster_hp}")
+
+def get_user_fight_options():
+    print("1) Attack")
+    print("2) Run Away")
+    choice = input("Enter your choice: ")
+    return choice
+
+def handle_player_attack(player_attack, monster_hp):
+    """Calculates and applies damage dealt by the player to the monster.
+
+    Args:
+        player_attack (int): The attack power of the player.
+        monster_hp (int): The health points of the monster.
+
+    Returns:
+        int: The monster's remaining health points.
     """
-    This function prints a welcome message for the given name.
-    
-    Parameters:
-    name (str): The name to welcome.
-    width (int): The width of the welcome message. Defaults to 20.
+    damage = random.randint(player_attack - 2, player_attack + 2)
+    monster_hp -= damage
+    print(f"You dealt {damage} damage!")
+    return monster_hp
+
+def handle_monster_attack(monster_attack, player_hp):
+    """Calculates and applies damage dealt by the monster to the player.
+
+    Args:
+        monster_attack (int): The attack power of the monster.
+        player_hp (int): The health points of the player.
+
+    Returns:
+        int: The player's remaining health points.
     """
-    welcome_message = f"Hello, {name}!"
-    padding = " " * ((width - len(welcome_message)) // 2)
-    print(padding + welcome_message + padding)
 
-def print_shop_menu(item1Name: str, item1Price: float, item2Name: str, item2Price: float) -> None:
+    damage = random.randint(monster_attack - 2, monster_attack + 2)
+    player_hp -= damage
+    print(f"The monster dealt {damage} damage!")
+    return player_hp
+
+def sleep(player_hp, gold):
+     """Restores the player's health points (HP) by sleeping if enough gold is available.
+
+    Args:
+        player_hp (int): The health points of the player before sleeping.
+        gold (int): The amount of gold the player has.
+
+    Returns:
+        tuple: The player's health points after sleeping and the remaining gold.
     """
-    This function prints a shop menu with two items and their prices.
-    
-    Parameters:
-    item1Name (str): The name of the first item.
-    item1Price (float): The price of the first item.
-    item2Name (str): The name of the second item.
-    item2Price (float): The price of the second item.
+
+    if gold >= 5 :
+        player_hp = 30
+        gold -= 5
+        print("You feel rested and your HP is fully restored.")
+    else:
+        print("You don't have enough gold to sleep.")
+    return player_hp, gold
+
+def handle_fight(player_hp, player_gold):
     """
-    print("/----------------------\\")
-    print(f"| {item1Name:<12} ${item1Price:7.2f} |")
-    print(f"| {item2Name:<12} ${item2Price:7.2f} |")
-    print("\\----------------------/")
-	
+    Handles the combat logic between the player and a monster.
 
-def main():
-    """Test the functions in this module."""
-    print("Testing purchase_item:")
-    print(purchase_item(10.0, 100.0, 5))
-    print(purchase_item(5.0, 20.0, 3))
+    Args:
+        player_hp (int): The player's current hit points.
+        player_gold (int): The player's current gold.
 
-    print("\nTesting new_random_monster:")
-    for _ in range(3):
-        print(new_random_monster())
+    Returns:
+        tuple: The player's updated hit points and gold.
+    """
+    print("\nA wild monster appears!")
+    monster = new_random_monster()
+    monster_hp = monster["hp"]
+    print(f"You encountered: {monster['description']}")
 
-    print("\nTesting print_welcome:")
-    print_welcome("PATHOU")
+    while player_hp > 0 and monster_hp > 0:
+        display_fight_statistics(player_hp, monster_hp, monster["name"])
+        fight_choice = get_user_fight_options()
 
-    print("\nTesting print_shop_menu:")
-    print_shop_menu("Sword", 15.0, "Shield", 10.0)
+        if fight_choice == '1':
+            monster_hp = handle_player_attack(10, monster_hp) #player attack value is 10
+            if monster_hp > 0:
+                player_hp = handle_monster_attack(monster["attack"], player_hp)
+        elif fight_choice == '2':
+            print("You ran away!")
+            return player_hp, player_gold
+        else:
+            print("Invalid choice. Try again.")
 
-if __name__ == "__main__":
-    # Test the functions
-    print("Testing purchase_item function:")
-    print(purchase_item(10.0, 100.0, 5))
-    print(purchase_item(5.0, 20.0, 3))
-    print(purchase_item(20.0, 50.0, 2))
-    print("\nTesting new_random_monster function:")
-    for _ in range(3):
-        monster = new_random_monster()
-        print(monster)
-
-    print("\nTesting print_welcome function:")
-    print_welcome("Jeff")
-    print_welcome("Audrey")
-
-    print("\nTesting print_shop_menu function:")
-    print_shop_menu("Apple", 31.0, "Pear", 1.234)
-    print_shop_menu("Egg", 0.23, "Bag of Oats", 12.34)
-
-    # Create a test_functions() function for testing purposes and call it conditionally based on the __name__ variable.
-    main()
-
-
+    if player_hp <= 0:
+        print("You were defeated!")
+        return 30, player_gold // 2 #player respawns with half gold
+    else:
+        print(f"You defeated the {monster['name']}!")
+        player_gold += 20 #reward for winning.
+        return player_hp, player_gold

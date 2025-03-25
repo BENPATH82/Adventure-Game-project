@@ -1,25 +1,36 @@
 import gamefunctions
 
 def main():
+    """
+    Main function to run the game.
+
+    Initializes player stats, presents the town menu, and handles game flow.
+    """
     player_name = input("Welcome to the game! What's your name? ")
     gamefunctions.print_welcome(player_name)
 
-    print("\nA wild monster appears!")
-    monster = gamefunctions.new_random_monster()
-    print(f"You encountered: {monster['description']}")
+    player_hp = 30
+    player_gold = 10
 
-    print("\nShop Menu:")
-    gamefunctions.print_shop_menu("Health Potion", 10.0, "Mana Potion", 12.0)
+    while True:
+        print("\nYou are in town.")
+        print(f"Current HP: {player_hp}, Current Gold: {player_gold}")
+        print("What would you like to do?")
+        print("1) Leave town (Fight Monster)")
+        print("2) Sleep (Restore HP for 5 Gold)")
+        print("3) Quit")
 
-    money = 50.0
-    print(f"\nYou have ${money}.")
-    choice = int(input("Enter 1 to buy Health Potion, or 2 to buy Mana Potion: "))
-    if choice == 1:
-        items_purchased, remaining_money = gamefunctions.purchase_item(10.0, money, 1)
-    else:
-        items_purchased, remaining_money = gamefunctions.purchase_item(12.0, money, 1)
+        choice = input("Enter your choice: ")
 
-    print(f"You bought {items_purchased} item(s). Remaining money: ${remaining_money}.")
+        if choice == '1':
+            player_hp, player_gold = gamefunctions.handle_fight(player_hp, player_gold)
+        elif choice == '2':
+            player_hp, player_gold = gamefunctions.sleep(player_hp, player_gold)
+        elif choice == '3':
+            print("Thanks for playing!")
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
 
 if __name__ == '__main__':
