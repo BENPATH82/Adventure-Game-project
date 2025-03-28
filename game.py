@@ -16,9 +16,9 @@ def main():
         print("\nYou are in town.")
         print(f"Current HP: {player_hp}, Current Gold: {player_gold}")
         print("What would you like to do?")
-        print("1) Leave town (Fight Monster)")
-        print("2) Sleep (Restore HP for 5 Gold)")
-        print("3) Quit")
+        print(" 1) Leave town (Fight Monster)")
+        print(" 2) Sleep (Restore HP for 5 Gold)")
+        print(" 3) Quit")
 
         choice = input("Enter your choice: ")
 
