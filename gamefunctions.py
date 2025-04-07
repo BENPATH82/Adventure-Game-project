@@ -21,7 +21,7 @@ def purchase_item(item, money, quantity, inventory):
     if money >= total_cost:
         remaining_money = money - total_cost
         for _ in range(quantity):
-            inventory.append(item.copy()) # adding a copy to avoid modification of original item
+            inventory.append(item.copy())
         return quantity, remaining_money
     else:
         print("Not enough money!")
@@ -40,7 +40,7 @@ def get_user_fight_options():
 def handle_player_attack(player_attack, monster_hp, equipped_weapon):
     damage = random.randint(player_attack - 2, player_attack + 2)
     if equipped_weapon:
-        damage += 5  # Example weapon bonus
+        damage += 5
         equipped_weapon['currentDurability'] -= 1
         if equipped_weapon['currentDurability'] <= 0:
             print("Your weapon broke!")
@@ -85,7 +85,7 @@ def handle_fight(player_hp, player_gold, inventory, equipped_weapon):
             item_used, inventory = handle_item_use(inventory, monster)
             if item_used:
                 print(f"You used {item_used['name']}!")
-                monster_hp = 0 # instant kill
+                monster_hp = 0
         else:
             print("Invalid choice. Try again.")
 
