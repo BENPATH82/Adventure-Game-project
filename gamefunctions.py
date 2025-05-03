@@ -64,7 +64,7 @@ def sleep(player_hp, gold):
         print("You don't have enough gold to sleep.")
     return player_hp, gold
 
-def handle_fight(player_hp, player_gold, inventory, equipped_weapon):
+def handle_fight(player_hp, player_gold, inventory, equipped_weapon,):
     print("\nA wild monster appears!")
     monster = new_random_monster()
     monster_hp = monster["hp"]
@@ -91,11 +91,11 @@ def handle_fight(player_hp, player_gold, inventory, equipped_weapon):
 
     if player_hp <= 0:
         print("You were defeated!")
-        return 30, player_gold // 2, inventory, equipped_weapon
+        return 30, player_gold // 2, inventory, equipped_weapon, "died"
     else:
         print(f"You defeated the {monster['name']}!")
         player_gold += 20
-        return player_hp, player_gold, inventory, equipped_weapon
+        return player_hp, player_gold, inventory, equipped_weapon, "win"
 
 def handle_item_use(inventory, monster):
     usable_items = [item for item in inventory if item.get('use_on') == monster['name']]

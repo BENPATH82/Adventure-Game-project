@@ -1,5 +1,5 @@
 import random
-import pygame
+import pygame # type: ignore
 
 
 class WanderingMonster:
