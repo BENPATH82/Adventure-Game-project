@@ -158,21 +158,29 @@ GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
+YELLOW = (255, 255, 0)
 
 # --- Map Feature Positions ---
 TOWN_POS = (0, 0)
 
-# --- Save/Load Game --- (Modified to include monster positions)
+
+# --- NPC Data ---
+npcs = [
+    {"name": "Old Man", "pos": (1, 2), "dialogue": "Welcome to our humble town."},
+    {"name": "Shopkeeper", "pos": (3, 4), "dialogue": "Come browse my wares!"},
+]
+
+# --- Save/Load Game ---
 def save_game(player_hp, player_gold, player_inventory, equipped_weapon, player_map_pos, monsters):
     """Saves the game state, including map position and monster positions."""
-    monster_data = [{"x": m.x, "y": m.y, "name": m.name, "gold": m.gold} for m in monsters]  # Save monster name
+    monster_data = [{"x": m.x, "y": m.y, "name": m.name, "gold": m.gold} for m in monsters]
     save_data = {
         "player_hp": player_hp,
         "player_gold": player_gold,
         "player_inventory": player_inventory,
         "equipped_weapon": equipped_weapon,
         "player_map_pos": player_map_pos,
-        "monsters": monster_data,  # Save monster data
+        "monsters": monster_data,
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -191,7 +199,7 @@ def load_game():
             player_map_pos = save_data.get("player_map_pos", list(TOWN_POS))
             monster_data = save_data.get("monsters", [])
             monsters = [
-                wanderingMonster.WanderingMonster(m["x"], m["y"], None, m["name"], m["gold"]) # Color not saved/loaded
+                wanderingMonster.WanderingMonster(m["x"], m["y"], None, m["name"], m["gold"])
                 for m in monster_data
             ]
             return (
@@ -200,7 +208,7 @@ def load_game():
                 save_data.get("player_inventory", []),
                 save_data.get("equipped_weapon", None),
                 list(player_map_pos),
-                monsters,  # Return loaded monsters
+                monsters,
             )
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error loading saved game: {e}. Starting new game.")
@@ -216,46 +224,36 @@ def load_game():
 def explore_map(player_hp, player_gold, player_inventory, equipped_weapon, current_player_map_pos, monsters):
     """
     Handles the graphical map exploration using Pygame.
-
-    Args:
-        player_hp, player_gold, player_inventory, equipped_weapon: Current player state.
-        current_player_map_pos: Player's starting [col, row] on the map for this session.
-        monsters: List of WanderingMonster objects.
-
-    Returns:
-        tuple: (outcome, updated_hp, updated_gold, updated_inv, updated_weapon, updated_map_pos, updated_monsters)
-               outcome can be 'town', 'game_over', 'quit'.
     """
+    pygame.init()
     try:
-        pygame.init()
         screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("World Map")
         clock = pygame.time.Clock()
         font = pygame.font.Font(None, 24)
 
         # --- Image Loading ---
-        image_cache = {}  # To store loaded images and avoid reloading
+        image_cache = {}
 
         def load_image(filename):
-            """Loads an image from the 'images' directory with error handling and caching."""
+            """Loads an image with error handling and caching."""
             filepath = os.path.join('images', filename)
-            print(f"Attempting to load: {filepath}")  # Debugging line
             try:
                 if filename not in image_cache:
-                    if not os.path.exists(filepath):
-                        print(f"Error: File not found at {filepath}") # Debugging line
+                    if os.path.exists(filepath):
+                        image_cache[filename] = pygame.image.load(filepath).convert_alpha()
+                        image_cache[filename] = pygame.transform.scale(image_cache[filename], (CELL_SIZE, CELL_SIZE))
+                    else:
+                        print(f"Warning: Image file not found: {filepath}. Using fallback.")
                         fallback_surface = pygame.Surface((CELL_SIZE, CELL_SIZE))
                         if 'player' in filename:
                             fallback_surface.fill(BLACK)
                         else:
                             fallback_surface.fill(RED)
                         image_cache[filename] = fallback_surface
-                    else:
-                        image_cache[filename] = pygame.image.load(filepath).convert_alpha()
-                image_cache[filename] = pygame.transform.scale(image_cache[filename], (32, 32))
                 return image_cache[filename]
             except pygame.error as e:
-                print(f"Pygame error loading '{filename}': {e}. Using fallback.") # More specific error
+                print(f"Error loading image '{filename}': {e}. Using fallback.")
                 fallback_surface = pygame.Surface((CELL_SIZE, CELL_SIZE))
                 if 'player' in filename:
                     fallback_surface.fill(BLACK)
@@ -265,138 +263,124 @@ def explore_map(player_hp, player_gold, player_inventory, equipped_weapon, curre
                 return fallback_surface
 
         player_image = load_image('player.png')
-
         monster_images = {
             "Zombie": load_image("Zombie.png"),
             "Slime": load_image("slime.png"),
             "Goblin": load_image("goblin.png")
         }
-        print(f"Player image loaded in explore_map: {player_image}") # Debugging line
-        print(f"Monster images loaded in explore_map: {monster_images}") # Debugging line
-        # --- End of Image Loading ---
 
-    except Exception as e:
-        print(f"Error initializing Pygame: {e}")
-        return 'town', player_hp, player_gold, player_inventory, equipped_weapon, current_player_map_pos, monsters
+        player_pos = list(current_player_map_pos)
+        initial_pos = tuple(current_player_map_pos)
+        running = True
+        map_outcome = 'map_running'
+        player_move_count = 0
+        interacting_with_npc = False
+        npc_interaction_text = ""
 
-    player_pos = list(current_player_map_pos)
-    initial_pos = tuple(current_player_map_pos)
-    running = True
-    map_outcome = 'map_running'
-    player_move_count = 0  # Counter to control monster movement
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return 'quit', player_hp, player_gold, player_inventory, equipped_weapon, player_pos, monsters
 
-    while running:
-        # --- Event Handling ---
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return 'quit', player_hp, player_gold, player_inventory, equipped_weapon, player_pos, monsters
+                if not interacting_with_npc:
+                    if event.type == pygame.KEYDOWN:
+                        next_pos = list(player_pos)
+                        if event.key == pygame.K_UP:
+                            next_pos[1] -= 1
+                        elif event.key == pygame.K_DOWN:
+                            next_pos[1] += 1
+                        elif event.key == pygame.K_LEFT:
+                            next_pos[0] -= 1
+                        elif event.key == pygame.K_RIGHT:
+                            next_pos[0] += 1
+                        else:
+                            continue
 
-            if event.type == pygame.KEYDOWN:
-                next_pos = list(player_pos)
+                        if 0 <= next_pos[0] < GRID_SIZE and 0 <= next_pos[1] < GRID_SIZE:
+                            player_pos = next_pos
+                            current_pos_tuple = tuple(player_pos)
 
-                if event.key == pygame.K_UP:
-                    next_pos[1] -= 1
-                elif event.key == pygame.K_DOWN:
-                    next_pos[1] += 1
-                elif event.key == pygame.K_LEFT:
-                    next_pos[0] -= 1
-                elif event.key == pygame.K_RIGHT:
-                    next_pos[0] += 1
+                            for npc in npcs:
+                                if npc["pos"] == current_pos_tuple:
+                                    interacting_with_npc = True
+                                    npc_interaction_text = npc["dialogue"]
+                                    print(f"You encountered {npc['name']}: {npc_interaction_text}")
+                                    break
+
+                            for i, monster in enumerate(monsters):
+                                if (monster.x, monster.y) == current_pos_tuple:
+                                    print(f"\nYou encountered a {monster.name}!")
+                                    try:
+                                        (
+                                            player_hp,
+                                            player_gold,
+                                            player_inventory,
+                                            equipped_weapon,
+                                            fight_status,
+                                        ) = gamefunctions.handle_fight(
+                                            player_hp, player_gold, player_inventory, equipped_weapon, monster.name
+                                        )
+                                        if fight_status == 'died':
+                                            map_outcome = 'game_over'
+                                            running = False
+                                        elif fight_status == 'won':
+                                            del monsters[i]
+                                            break
+                                    except AttributeError:
+                                        print("Error: 'handle_fight' function not found in gamefunctions.")
+                                        map_outcome = 'town'
+                                        running = False
+                                    except Exception as e:
+                                        print(f"An error occurred during the fight: {e}")
+                                        map_outcome = 'town'
+                                        running = False
+                elif event.type == pygame.KEYDOWN:
+                    interacting_with_npc = False
+                    npc_interaction_text = ""
+
+            screen.fill(WHITE)
+
+            for x in range(0, WIDTH, CELL_SIZE):
+                pygame.draw.line(screen, BLACK, (x, 0), (x, HEIGHT))
+            for y in range(0, HEIGHT, CELL_SIZE):
+                pygame.draw.line(screen, BLACK, (0, y), (WIDTH, y))
+
+            town_center_x = TOWN_POS[0] * CELL_SIZE + CELL_SIZE // 2
+            town_center_y = TOWN_POS[1] * CELL_SIZE + CELL_SIZE // 2
+            pygame.draw.circle(screen, GREEN, (town_center_x, town_center_y), CELL_SIZE // 2 - 4, 4)
+
+            for monster in monsters:
+                monster_image_to_draw = monster_images.get(monster.name)
+                if monster_image_to_draw:
+                    monster_rect = monster_image_to_draw.get_rect(topleft=(monster.x * CELL_SIZE, monster.y * CELL_SIZE))
+                    screen.blit(monster_image_to_draw, monster_rect)
                 else:
-                    continue
+                    monster_rect = pygame.Rect(monster.x * CELL_SIZE, monster.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                    pygame.draw.rect(screen, RED, monster_rect)
 
-                # --- Boundary Check ---
-                if 0 <= next_pos[0] < GRID_SIZE and 0 <= next_pos[1] < GRID_SIZE:
-                    # --- Valid Move: Update Player Position ---
-                    player_pos = next_pos
-                    current_pos_tuple = tuple(player_pos)
+            for npc in npcs:
+                npc_x = npc["pos"][0] * CELL_SIZE + CELL_SIZE // 2
+                npc_y = npc["pos"][1] * CELL_SIZE + CELL_SIZE // 2
+                pygame.draw.circle(screen, YELLOW, (npc_x, npc_y), CELL_SIZE // 2 - 4, 4)
 
-                    # --- Monster Movement ---
-                    player_move_count += 1
-                    if player_move_count % 2 == 0:  # Move monsters every other player move
-                        for monster in monsters:
-                            monster.move(GRID_SIZE, TOWN_POS[0], TOWN_POS[1])
+            player_rect = player_image.get_rect(topleft=(player_pos[0] * CELL_SIZE, player_pos[1] * CELL_SIZE))
+            screen.blit(player_image, player_rect)
 
-                    # --- Check for Special Squares AFTER Moving ---
-                    # 1. Check for Town Return
-                    if current_pos_tuple == TOWN_POS and current_pos_tuple != initial_pos:
-                        print("Returning to the safety of the town.")
-                        map_outcome = 'town'
-                        running = False
+            if interacting_with_npc:
+                text_surface = font.render(npc_interaction_text, True, BLACK)
+                text_rect = text_surface.get_rect(center=(WIDTH // 2, HEIGHT - 30))
+                pygame.draw.rect(screen, WHITE, text_rect.inflate(10, 5))
+                screen.blit(text_surface, text_rect)
 
-                    # 2. Check for Monster Encounter
-                    for i, monster in enumerate(monsters):
-                        if (monster.x, monster.y) == current_pos_tuple:
-                            print(f"\nYou encountered a {monster.name}!")
-                            # --- Trigger Fight ---
-                            try:
-                                (
-                                    player_hp,
-                                    player_gold,
-                                    player_inventory,
-                                    equipped_weapon,
-                                    fight_status,
-                                ) = gamefunctions.handle_fight(
-                                    player_hp, player_gold, player_inventory, equipped_weapon
-                                )
-
-                                if fight_status == 'died':
-                                    map_outcome = 'game_over'
-                                    running = False
-                                else:  # Player won or fled
-                                    print("The immediate danger has passed. You remain on the map.")
-                                    # Remove the defeated monster from the list
-                                    del monsters[i]
-                                    break  # Exit the loop after handling the encounter
-                            except AttributeError:
-                                print("Error: 'handle_fight' function not found in gamefunctions.")
-                                map_outcome = 'town'
-                                running = False
-                            except Exception as e:
-                                print(f"An error occurred during the fight: {e}")
-                                map_outcome = 'town'
-                                running = False
-
-        # --- Drawing ---
-        screen.fill(WHITE)
-
-        # Draw Grid Lines
-        for x in range(0, WIDTH, CELL_SIZE):
-            pygame.draw.line(screen, BLACK, (x, 0), (x, HEIGHT))
-        for y in range(0, HEIGHT, CELL_SIZE):
-            pygame.draw.line(screen, BLACK, (0, y), (WIDTH, y))
-
-        # Draw Town Square (Green Circle)
-        town_center_x = TOWN_POS[0] * CELL_SIZE + CELL_SIZE // 2
-        town_center_y = TOWN_POS[1] * CELL_SIZE + CELL_SIZE // 2
-        pygame.draw.circle(screen, GREEN, (town_center_x, town_center_y), CELL_SIZE // 2 - 4, 4)
-
-        # Draw Monsters
-        for monster in monsters:
-            monster_image_to_draw = monster_images.get(monster.name)
-            if monster_image_to_draw:
-                monster_rect = monster_image_to_draw.get_rect(topleft=(monster.x * CELL_SIZE, monster.y * CELL_SIZE))
-                screen.blit(monster_image_to_draw, monster_rect)
-            else:
-                # Fallback: Red Rectangle
-                monster_rect = pygame.Rect(
-                    monster.x * CELL_SIZE,
-                    monster.y * CELL_SIZE,
-                    CELL_SIZE,
-                    CELL_SIZE,
-                )
-                pygame.draw.rect(screen, RED, monster_rect)
-
-        # Draw Player
-        player_rect = player_image.get_rect(topleft=(player_pos[0] * CELL_SIZE, player_pos[1] * CELL_SIZE))
-        screen.blit(player_image, player_rect)
-
-        pygame.display.flip()
-        clock.tick(10)
+            pygame.display.flip()
+            clock.tick(10)
 
     # --- End of Map Loop ---
-    pygame.quit()
+      
+        pygame.quit()
+    except Exception as e:
+        print(f"Error during pygame.quit(): {e}")
     return map_outcome, player_hp, player_gold, player_inventory, equipped_weapon, player_pos, monsters
 
 
